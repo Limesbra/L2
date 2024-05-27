@@ -13,44 +13,47 @@ import (
 "45" => "" (некорректная строка)
 "" => ""
 
-Дополнительно
-Реализовать поддержку escape-последовательностей.
-Например:
-qwe\4\5 => qwe45 (*)
-qwe\45 => qwe44444 (*)
-qwe\\5 => qwe\\\\\ (*)
-
 
 В случае если была передана некорректная строка, функция должна возвращать ошибку. Написать unit-тесты.
 */
 
 func unpacker(s string) (string, error) {
 
+	if len(s) == 0 {
+		return "", nil
+	}
+
 	runes := []rune(s)
 	if unicode.IsDigit(runes[0]) {
 		return "", fmt.Errorf("invalid string")
 	}
 
-	var unpackRunes []rune
-	var oldRune rune
-	for i, r := range runes {
-		if i%2 != 0 && unicode.IsDigit(r) {
-			num, err := strconv.Atoi(string(r))
-			if err != nil {
-				return "", err
+	res := make([]rune, 0)
+	for i := 0; i < len(runes); i++ {
+		if unicode.IsDigit(runes[i]) {
+			number := make([]rune, 0)
+			for i < len(runes) && unicode.IsDigit(runes[i]) {
+				number = append(number, runes[i])
+				i++
 			}
-			for j := 0; j <= num; j++ {
-				unpackRunes = append(unpackRunes, oldRune)
+			i--
+			num, _ := strconv.Atoi(string(number))
+			for j := 0; j < num-1; j++ {
+				res = append(res, res[len(res)-1])
 			}
+		} else {
+			res = append(res, runes[i])
 		}
-		oldRune = r
 	}
-	str := string(unpackRunes)
-	return str, nil
+	return string(res), nil
+
 }
 
 func main() {
-	s := "a4"
-	s1, _ := unpacker(s)
+	s1, err := unpacker("* *")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	fmt.Println(s1)
 }
