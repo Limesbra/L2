@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sort"
 	// "strings"
 )
@@ -50,13 +49,21 @@ func (c *Character) Setter(s string) {
 	}
 }
 
-func (c *Character) Equal(other *Character) bool {
-	return c.Lenght == other.Lenght && c.Arr == other.Arr
+func KillDoubling(arr *[]string) {
+	m := make(map[string]bool)
+	j := 0
+	for _, item := range *arr {
+		if !m[item] {
+			m[item] = true
+			(*arr)[j] = item
+			j++
+		}
+	}
+	*arr = (*arr)[:j]
 }
 
-func
-
 func CreateListCharacter(arr *[]string) []Character {
+	KillDoubling(arr)
 	SortByLenght(arr)
 	list := make([]Character, len(*arr))
 	for i := 0; i < len(*arr); i++ {
@@ -71,7 +78,8 @@ func SortByLenght(arr *[]string) {
 	})
 }
 
-func FindAnagram(arr *[]string) /* map[string]*[]string */ {
+func FindAnagram(arr *[]string) map[string]*[]string {
+
 	list := CreateListCharacter(arr)
 	m := make(map[[33]int][]Character)
 	for _, item := range list {
@@ -99,17 +107,7 @@ func FindAnagram(arr *[]string) /* map[string]*[]string */ {
 			}
 		}
 	}
-
-	for key, value := range anagram {
-		fmt.Println(key + ":")
-		if *value != nil {
-			for _, word := range *value {
-				fmt.Println("  - " + word)
-			}
-		} else {
-			fmt.Println("  - No words found")
-		}
-	}
+	return anagram
 }
 
 func main() {
