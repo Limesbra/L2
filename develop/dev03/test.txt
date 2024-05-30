@@ -2,8 +2,8 @@ computer 1
 mouse 2
 LAPTOP 3
 data 4
-RedHat 7
-RedHat 6
+RedHat
+RedHat
 laptop 8
 debian 10
 laptop 5

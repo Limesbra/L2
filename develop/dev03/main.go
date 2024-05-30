@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -22,12 +23,14 @@ import (
 -u — не выводить повторяющиеся строки
 */
 
+// Структура которая содержит информацию о флагах и имени файла
 type Sflags struct {
 	N, R, U  bool
 	K        int
 	Filename string
 }
 
+// Функция парсинга. Парсит флаги и имя файла который нужно отсортировать
 func parseFlags(f *Sflags) {
 	// flag.BoolVar(&f.K, "k", false, "указание колонки для сортировки")
 	flag.BoolVar(&f.N, "n", false, "сортировать по числовому значению")
@@ -45,6 +48,8 @@ func parseFlags(f *Sflags) {
 	}
 }
 
+// Открываем файл и считываем всю информацию из него
+// Если сортировка вызвана с флагом -u происходит удаление дубликатов
 func openFile(f *Sflags) ([]string, error) {
 	file, err := os.Open(f.Filename)
 	if err != nil {
@@ -76,6 +81,7 @@ func openFile(f *Sflags) ([]string, error) {
 	return data, nil
 }
 
+// функция обратной сортировки
 func Reverse(s []string) []string {
 	if len(s) <= 1 {
 		return s
@@ -87,6 +93,8 @@ func Reverse(s []string) []string {
 	return reverse
 }
 
+// Функция сортировки по колонкам
+// Разбивает строку на колонки и сортирует по номеру колонки
 func sortByColumn(s []string, f *Sflags) []string {
 	column := f.K
 	m := make(map[string]string)
@@ -125,11 +133,35 @@ func sortByColumn(s []string, f *Sflags) []string {
 	return result
 }
 
-func Sort() []string {
+// Создаем новый файл и записываем в него результат сортировки
+func writeFile(s []string) error {
+	var buf bytes.Buffer
+	for i := 0; i < len(s); i++ {
+		if i == len(s)-1 {
+			buf.WriteString(s[i])
+			continue
+		}
+		buf.WriteString(s[i] + "\n")
+	}
+	file, err := os.Create("sorted.txt")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.Write(buf.Bytes())
+	return err
+}
+
+// функция сортировки
+func Sort() error {
 	var f Sflags
 	parseFlags(&f)
 	s, _ := openFile(&f)
 	if f.K >= 0 {
+		s = sortByColumn(s, &f)
+	}
+	if f.N {
+		f.K = 0
 		s = sortByColumn(s, &f)
 	}
 	if !f.N && f.K == -1 {
@@ -138,11 +170,14 @@ func Sort() []string {
 	if f.R {
 		s = Reverse(s)
 	}
-	return s
+	err := writeFile(s)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return nil
 }
 
 func main() {
-	for _, item := range Sort() {
-		fmt.Println(item)
-	}
+	Sort()
 }

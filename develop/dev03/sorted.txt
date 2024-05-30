@@ -1,0 +1,9 @@
+123ght 9
+LAPTOP 3
+RedHat
+computer 1
+data 4
+debian 10
+laptop 5
+laptop 8
+mouse 2
