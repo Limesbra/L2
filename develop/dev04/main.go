@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"sort"
+	"strings"
 	// "strings"
 )
 
@@ -16,28 +18,26 @@ import (
 Входные данные для функции: ссылка на массив, каждый элемент которого - слово на русском языке в кодировке utf8
 Выходные данные: ссылка на мапу множеств анаграмм
 Ключ - первое встретившееся в словаре слово из множества. Значение - ссылка на массив, каждый элемент которого,
-слово из множества.
-Массив должен быть отсортирован по возрастанию.
-Множества из одного элемента не должны попасть в результат.
-Все слова должны быть приведены к нижнему регистру.
-В результате каждое слово должно встречаться только один раз.
+слово из множества. +
+Массив должен быть отсортирован по возрастанию. +
+Множества из одного элемента не должны попасть в результат. +
+Все слова должны быть приведены к нижнему регистру. +
+В результате каждое слово должно встречаться только один раз. +
 */
 
 const alphabet = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
 
 type Character struct {
-	Word   string
-	Arr    [33]int
-	Lenght int
+	Word string
+	Arr  [33]int
+	// Lenght int
 }
 
 func (c *Character) Setter(s string) {
 	c.Word = s
-	runes := []rune(s)
-	c.Lenght = len(runes)
 	runess := []rune(alphabet)
 	i := 0
-	for _, r := range runes {
+	for _, r := range s {
 		for _, rr := range runess {
 			if string(r) == string(rr) {
 				c.Arr[i] += 1
@@ -78,8 +78,14 @@ func SortByLenght(arr *[]string) {
 	})
 }
 
-func FindAnagram(arr *[]string) map[string]*[]string {
+func ToLower(arr *[]string) {
+	for i, item := range *arr {
+		(*arr)[i] = strings.ToLower(item)
+	}
+}
 
+func FindAnagram(arr *[]string) map[string]*[]string {
+	ToLower(arr)
 	list := CreateListCharacter(arr)
 	m := make(map[[33]int][]Character)
 	for _, item := range list {
@@ -95,7 +101,12 @@ func FindAnagram(arr *[]string) map[string]*[]string {
 	anagram := make(map[string]*[]string)
 	for _, item := range m {
 		key := item[0].Word
+		flag := true
 		for i, w := range item {
+			if len(item) == 1 {
+				flag = false
+				continue
+			}
 			if i == 0 {
 				a := make([]string, 0)
 				a = append(a, w.Word)
@@ -106,12 +117,20 @@ func FindAnagram(arr *[]string) map[string]*[]string {
 				anagram[key] = arr
 			}
 		}
+		if flag {
+			sort.Strings(*anagram[key])
+		}
 	}
 	return anagram
 }
 
 func main() {
-	// a := []string{"кот", "ток", "карета", "ракета", "мама"}
-	a := []string{"листок", "пятак", "слиток", "пятка", "столик", "тяпка", "тяпка"}
-	FindAnagram(&a)
+	a := []string{"ток", "кот", "карета", "РАКЕТА", "мама"}
+	// a := []string{"листок", "пятак", "слиток", "пятка", "столик", "тяпка", "тяпка"}
+	m := FindAnagram(&a)
+	for key, value := range m {
+		fmt.Println("Key:", key)
+		fmt.Println("Value:", *value)
+		fmt.Println()
+	}
 }
