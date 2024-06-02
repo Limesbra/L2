@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 )
@@ -13,19 +14,19 @@ import (
 Реализовать утилиту фильтрации по аналогии с консольной утилитой (man grep — смотрим описание и основные параметры).
 
 Реализовать поддержку утилитой следующих ключей:
--A - "after" печатать +N строк после совпадения
--B - "before" печатать +N строк до совпадения
--C - "context" (A+B) печатать ±N строк вокруг совпадения
+-A - "after" печатать +N строк после совпадения +
+-B - "before" печатать +N строк до совпадения +
+-C - "context" (A+B) печатать ±N строк вокруг совпадения +
 -c - "count" (количество строк) +
 -i - "ignore-case" (игнорировать регистр) +
--v - "invert" (вместо совпадения, исключать)
+-v - "invert" (вместо совпадения, исключать) +
 -F - "fixed", точное совпадение со строкой, не паттерн
 -n - "line num", напечатать номер строки +
 */
 type Gflags struct {
 	Count, Ignore, Invert, Fixed, Num, Border    bool
 	After, Before, Context, BotBorder, TopBorder int
-	Filename                                     string
+	Filename, Fstr                               string
 	R                                            *regexp.Regexp
 }
 
@@ -69,6 +70,9 @@ func parseFlags(g *Gflags) {
 	} else {
 		g.R = regexp.MustCompile(args[0])
 	}
+	if g.Fixed {
+		g.Fstr = args[0]
+	}
 	g.Filename = args[1]
 	// проверка на флаги -ABC и установка границ
 	g.setBorders()
@@ -76,115 +80,88 @@ func parseFlags(g *Gflags) {
 }
 
 // Открываем файл и считываем всю информацию из него
-func openFile(g *Gflags) ([]string, error) {
+func openFile(g *Gflags) (map[int]string, error) {
 	file, err := os.Open(g.Filename)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 	defer file.Close()
-	data := make([]string, 0)
+	data := make(map[int]string)
 	scanner := bufio.NewScanner(file)
+	i := 0
 	for scanner.Scan() {
 		line := scanner.Text()
-		data = append(data, line)
+		data[i] = line
+		i++
 	}
 	return data, nil
 }
 
-// // Функция копирует из слайса в мапу данные из заданного интервала в слайсе
-// func copyToMapByInterval(m map[int]string, data []string, first int, last int) {
-// 	for k := first; k < last; k++ {
-// 		m[k] = data[k]
-// 	}
-// }
-
-// // Реализует ключ -B
-// func grepBefore(g *Gflags, s *[]string) map[int]string {
-// 	buf := make(map[int]string)
-// 	for i, str := range *s {
-// 		if g.R.MatchString(str) && !g.Invert || !g.R.MatchString(str) && g.Invert {
-// 			buf[i] = str
-// 			if i-g.TopBorder >= 0 {
-// 				copyToMapByInterval(buf, *s, i-g.TopBorder, i)
-// 			} else {
-// 				copyToMapByInterval(buf, *s, 0, i)
-// 			}
-// 		}
-// 	}
-// 	return buf
-// }
-
-// // Реализует ключ -A
-// func grepAfter(g *Gflags, s *[]string) map[int]string {
-// 	buf := make(map[int]string)
-// 	for i, str := range *s {
-// 		if g.R.MatchString(str) && !g.Invert || !g.R.MatchString(str) && g.Invert {
-// 			buf[i] = str
-// 			if i+g.BotBorder < len(*s) {
-// 				copyToMapByInterval(buf, *s, i+1, i+g.BotBorder+1)
-// 			} else {
-// 				copyToMapByInterval(buf, *s, i+1, len(*s))
-// 			}
-// 		}
-// 	}
-// 	return buf
-// }
-
-// // Реализует ключ -C
-// func grepContext(g *Gflags, s *[]string) map[int]string {
-// 	buf := make(map[int]string)
-// 	for i, str := range *s {
-// 		if g.R.MatchString(str) && !g.Invert || !g.R.MatchString(str) && g.Invert {
-// 			buf[i] = str
-
-// 			if i-g.Context >= 0 {
-// 				copyToMapByInterval(buf, *s, i-g.TopBorder, i)
-// 			} else {
-// 				copyToMapByInterval(buf, *s, 0, i)
-// 			}
-
-// 			if i+g.Context < len(*s) {
-// 				copyToMapByInterval(buf, *s, i+1, i+g.TopBorder+1)
-// 			} else {
-// 				copyToMapByInterval(buf, *s, i+1, len(*s))
-// 			}
-// 		}
-// 	}
-
-// 	return buf
-// }
-
-func FindInverse(s *[]string, g *Gflags) []string {
-	output := make([]string, 0)
-	if g.Border { // нужно сделать мапу
-		// m:= make(map[string]bool)
-		for i := 0; i < len(*s); i++ {
-			if !g.R.MatchString((*s)[i]) {
-				// m[(*s)[i]] = true
-				output = append(output, (*s)[i])
-			} else {
-				for j := g.TopBorder; j > 0; j-- {
-					output = append(output, (*s)[i-j])
+func borders(s *map[int]string, g *Gflags) map[int]string {
+	out := make(map[int]string, 0)
+	for i, str := range *s {
+		if g.R.MatchString(str) && !g.Invert || !g.R.MatchString(str) && g.Invert {
+			out[i] = str
+		}
+		if g.R.MatchString(str) {
+			out[i] = str
+			for j := g.TopBorder; j > 0; j-- {
+				if i-j >= 0 {
+					out[i-j] = (*s)[i-j]
 				}
-
+			}
+			for k := g.BotBorder; k > 0; k-- {
+				if i+k < len(*s) {
+					out[i+k] = (*s)[i+k]
+				}
 			}
 		}
 	}
-	for _, item := range *s {
-		if !g.R.MatchString(item) {
-			output = append(output, item)
-		}
-	}
-	return output
+	return out
 }
 
-func AddNumberRow(s *[]string) []string {
-	out := make([]string, len(*s))
-	for i := 0; i < len(*s); i++ {
-		out[i] = strconv.Itoa(i+1) + ":" + (*s)[i]
+func compareBytes(s *map[int]string, g *Gflags) map[int]string {
+	out := make(map[int]string, 0)
+	sb := []byte(g.Fstr)
+	for j, i := 0, 0; i < len(*s); i++ {
+		fb := []byte((*s)[i])
+		if !reflect.DeepEqual(sb, fb) {
+			out[j] = (*s)[i]
+			j++
+		}
 	}
 	return out
+}
+
+func findInverse(s *map[int]string, g *Gflags) map[int]string {
+	out := make(map[int]string, 0)
+	if !g.Fixed {
+		for j, i := 0, 0; i < len(*s); i++ {
+			if !g.R.MatchString((*s)[i]) {
+				out[j] = (*s)[i]
+				j++
+			}
+		}
+	} else {
+		out = compareBytes(s, g)
+	}
+	return out
+}
+
+func addNumberRow(s *map[int]string) {
+	for i := 0; i < len(*s); i++ {
+		(*s)[i] = strconv.Itoa(i+1) + ":" + (*s)[i]
+	}
+}
+
+func printResult(s *map[int]string) {
+	for i, j := 0, 0; j < len(*s); i++ {
+		if (*s)[i] != "" {
+			j++
+			fmt.Println((*s)[i])
+		}
+	}
 }
 
 func Grep() {
@@ -192,36 +169,28 @@ func Grep() {
 	parseFlags(&g)
 	file, _ := openFile(&g)
 
-	var output []string
+	var output map[int]string
 
 	// если есть флаг -n
 	if g.Num && !g.Count {
-		output = AddNumberRow(&file)
+		addNumberRow(&file)
 	}
 	// если есть флаг -v
-	if g.Invert {
-		output = FindInverse(&file, &g)
+	if g.Invert && !g.Border {
+		output = findInverse(&file, &g)
+	} else if g.Border { // если есть флаги -АВС
+		output = borders(&file, &g)
+	} else if g.Fixed { // если тольк есть флаг -F
+		output = compareBytes(&file, &g)
+	} else { // если обычный греп
+		output = file
 	}
 	// если есть флаг -c
 	if g.Count {
 		fmt.Println(len(output))
 		return
 	}
-	// if g.After
-	fmt.Println(g.After)
-
-	// for _, item := range file {
-	// 	if g.R.MatchString(item) && !g.Invert {
-	// 		output = append(output, item)
-	// 	} else if !g.R.MatchString(item) && g.Invert {
-	// 		output = append(output, item)
-	// 	}
-	// }
-
-	// for _, s := range output {
-	// 	fmt.Println(s)
-	// }
-
+	printResult(&output)
 }
 
 func main() {

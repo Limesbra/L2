@@ -1,7 +1,7 @@
 computer 1
 mouse 2
 LAPTOP 3
-RedHat 1 2 3
+RedHat
 data 4
 RedHat 4 5 6
 laptop 8
