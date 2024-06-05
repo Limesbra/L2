@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -17,51 +20,67 @@ import (
 */
 
 type cFlags struct {
-	f int
-	d string
-	s bool
+	d, f string
+	s    bool
 }
 
-func parseFlags(c *cFlags) []string {
-	flag.IntVar(&c.f, "f", 0, "выбрать поля (колонки)")
-	flag.StringVar(&c.d, "d", "\t", "только строки с разделителем")
+func parseFlags(c *cFlags) {
+	flag.StringVar(&c.f, "f", "", "выбрать поля (колонки)")
+	flag.StringVar(&c.d, "d", "", "только строки с разделителем")
 	flag.BoolVar(&c.s, "s", false, "только строки с разделителем")
 	flag.Parse()
-	// for i := 0; i < len(os.Args); i++ {
-	// fmt.Println(os.Args[i], i)
-	// }
-	args := flag.Args()
-	// fmt.Println(args[0])
-	return args
 }
 
-// func worker(s *bufio.Scanner) string {
-// 	var res strings.Builder
-// 	for s.Scan() {
-// 		data := s.Text()
-// 		res.WriteString(data + " ")
-// 	}
+func worker(c *cFlags) error {
+	column := make([]int, 0)
 
-// 	r := res.String()
-
-// 	return r
-// }
-
-func worker(str []string) string {
-	var res strings.Builder
-	for _, s := range str { // Используем s.Scan() вместо (*s).Scan(), так как s уже указывает на Scanner
-		res.WriteString(s + " ") // Убедитесь, что добавляете пробел между элементами, если это необходимо
+	switch {
+	case strings.Contains(c.f, "-"): // если ввели диапазон пр: 1-5
+		c := strings.Split(c.f, "-")
+		start, _ := strconv.Atoi(c[0])
+		end, _ := strconv.Atoi(c[1])
+		for i := start; i <= end; i++ {
+			column = append(column, i)
+		}
+	case strings.Contains(c.f, ","): // если ввели через , пр: 1,2,3
+		c := strings.Split(c.f, ",")
+		for _, item := range c {
+			v, _ := strconv.Atoi(item)
+			column = append(column, v)
+		}
+	default: // ввели одну цифру пр: 2
+		v, _ := strconv.Atoi(c.f)
+		column = append(column, v)
 	}
 
-	r := res.String()
-	return r
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for scanner.Scan() {
+		str := scanner.Text()
+		if c.d == "" && !c.s {
+			fmt.Print(str)
+		} else {
+			s := strings.Split(str, c.d)
+			if c.f == "" {
+				return fmt.Errorf("usage: cut -f list [-s] [-w | -d delim] [file ...]")
+			}
+			for i, j := range column {
+				if i == len(column)-1 {
+					fmt.Print(s[0+j-1])
+					break
+				}
+				fmt.Print(s[0+j-1], "\t")
+			}
+		}
+
+	}
+	return nil
 }
 
 func Cut() {
 	var c cFlags
-	expression := parseFlags(&c)
-	fmt.Println(worker(expression))
-
+	parseFlags(&c)
+	worker(&c)
 }
 
 func main() {
