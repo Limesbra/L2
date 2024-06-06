@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -15,11 +14,11 @@ import (
 Необходимо реализовать свой собственный UNIX-шелл-утилиту с поддержкой ряда простейших команд:
 
 
-- cd <args> - смена директории (в качестве аргумента могут быть то-то и то)
-- pwd - показать путь до текущего каталога
-- echo <args> - вывод аргумента в STDOUT
+- cd <args> - смена директории (в качестве аргумента могут быть то-то и то) +
+- pwd - показать путь до текущего каталога +
+- echo <args> - вывод аргумента в STDOUT +
 - kill <args> - "убить" процесс, переданный в качесте аргумента (пример: такой-то пример)
-- ps - выводит общую информацию по запущенным процессам в формате *такой-то формат*
+- ps - выводит общую информацию по запущенным процессам в формате *такой-то формат* +
 
 Так же требуется поддерживать функционал fork/exec-команд
 
@@ -36,42 +35,46 @@ func unixUtil() {
 		if command == "quit" {
 			break
 		}
-		out, err := execUtil(command)
-		if err != nil {
-			log.Fatal("err: ", err)
-		}
-		fmt.Println(out)
+		queueCommand(command)
+
 		fmt.Print("enter quit for exit\n")
 	}
 }
 
-func execUtil(c string) ([]string, error) {
-	commands := queueCommand(c)
-	fmt.Println(commands)
-	var output []string
-	var out bytes.Buffer
-	for _, item := range commands {
-		item = strings.TrimPrefix(item, " ")
-		item = strings.TrimSuffix(item, " ")
-		util := strings.Split(item, " ")
-		// fmt.Println(util, i)
-		cmd := exec.Command(util[0], util[1:]...)
+func execUtil(c string) (string, error) {
+	util := strings.Split(c, " ")
+	cmd := exec.Command(util[0], util[1:]...)
+
+	if util[0] == "cd" {
+		err := os.Chdir(util[1])
+		if err != nil {
+			return "", fmt.Errorf("error changing directory: %w", err)
+		}
+	} else {
+		var out strings.Builder
 		cmd.Stdout = &out
-		output = append(output, out.String())
 		err := cmd.Run()
 		if err != nil {
-			fmt.Print(err)
-			return nil, fmt.Errorf("error executing command %s: %w", item, err)
+			return "", fmt.Errorf("error executing command %s: %w", util[0], err)
 		}
+		return out.String(), nil
 	}
-	fmt.Println("here", output)
 
-	return output, nil
+	return "", nil
 }
 
-func queueCommand(c string) []string {
+func queueCommand(c string) {
+
 	cmd := strings.Split(c, "|")
-	return cmd
+	for _, i := range cmd {
+		i = strings.TrimPrefix(i, " ")
+		i = strings.TrimSuffix(i, " ")
+		out, err := execUtil(i)
+		if err != nil {
+			log.Fatal("err: ", err)
+		}
+		fmt.Println(out)
+	}
 }
 
 func main() {
