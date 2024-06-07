@@ -6,7 +6,7 @@ go-telnet --timeout=10s host port go-telnet mysite.ru 8080 go-telnet --timeout=3
 
 Требования:
 Программа должна подключаться к указанному хосту (ip или доменное имя + порт) по протоколу TCP.
-После подключения STDIN программы должен записываться в сокет, а данные полученные и сокета должны выводиться в STDOUT
+После подключения STDIN программы должен записываться в сокет, а данные полученные из сокета должны выводиться в STDOUT
 Опционально в программу можно передать таймаут на подключение к серверу (через аргумент --timeout, по умолчанию 10s)
 При нажатии Ctrl+D программа должна закрывать сокет и завершаться.
 Если сокет закрывается со стороны сервера, программа должна также завершаться.
@@ -17,6 +17,7 @@ telnet 23 tcp port*/
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -25,11 +26,14 @@ import (
 func main() {
 	// Listen on TCP port 2000 on all available unicast and
 	// anycast IP addresses of the local system.
-	l, err := net.Listen("tcp", ":23")
+	l, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer l.Close()
+
+	fmt.Println("Server started. Listening on port 8080...")
+
 	for {
 		// Wait for a connection.
 		conn, err := l.Accept()
@@ -44,6 +48,7 @@ func main() {
 			io.Copy(c, c)
 			// Shut down the connection.
 			c.Close()
+			// fmt.Println("Connection closed")
 		}(conn)
 	}
 }
