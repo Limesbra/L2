@@ -44,6 +44,7 @@ Web-сервер должен запускаться на порту указа�
 */
 
 func runServer() {
+	
 	log.Println("starting server on port 8080...")
 	handlers.HandleHTTPRequests()
 	err := http.ListenAndServe(":8080", nil)

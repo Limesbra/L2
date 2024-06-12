@@ -3,8 +3,10 @@ package handlers
 import (
 	"dev11/internal/event"
 	"dev11/internal/middleware"
-	"fmt"
+	"encoding/json"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 // POST /create_event
@@ -14,27 +16,118 @@ import (
 // GET /events_for_week
 // GET /events_for_month
 
-func HandleHTTPRequests() {
-	http.HandleFunc("/create_event", middleware.Middleware(http.HandlerFunc(createEvent)))
-	http.HandleFunc("/update_event", middleware.Middleware(http.HandlerFunc(updateEvent)))
-	http.HandleFunc("/delete_event", middleware.Middleware(http.HandlerFunc(deleteEvent)))
-	http.HandleFunc("/events_for_day", middleware.Middleware(http.HandlerFunc(getEventsForDay)))
-	http.HandleFunc("/events_for_week", middleware.Middleware(http.HandlerFunc(getEventsForWeek)))
-	http.HandleFunc("/events_for_month", middleware.Middleware(http.HandlerFunc(getEventsForMonth)))
+type EventHandler struct {
+	ec *event.EventsCalendar
 }
 
-func createEvent(w http.ResponseWriter, r *http.Request) {
+func (eh *EventHandler) HandleHTTPRequests() {
+	http.HandleFunc("/create_event", middleware.Middleware(http.HandlerFunc(eh.createEvent)))
+	http.HandleFunc("/update_event", middleware.Middleware(http.HandlerFunc(eh.updateEvent)))
+	http.HandleFunc("/delete_event", middleware.Middleware(http.HandlerFunc(eh.deleteEvent)))
+	http.HandleFunc("/events_for_day", middleware.Middleware(http.HandlerFunc(eh.getEventsForDay)))
+	http.HandleFunc("/events_for_week", middleware.Middleware(http.HandlerFunc(eh.getEventsForWeek)))
+	http.HandleFunc("/events_for_month", middleware.Middleware(http.HandlerFunc(eh.getEventsForMonth)))
+}
+
+func (eh *EventHandler) createEvent(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "Post" {
-		ev := &event.Event{}
-		err := ev.Parse(r.Body)
-		if err != nil{
-			http.Error(w, `{"error": "Failed to decode request data"}`, 400)
+		result, err := eh.ec.AddEvent(r.Body)
+		if err != nil {
+			http.Error(w, `{"error": "Failed to decode request data"}`, http.StatusBadRequest)
+			return
 		}
-		fmt.Println(ev)
+
+		response := map[string]string{"result": result}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+	http.Error(w, `{"error": "Wrong method"}`, http.StatusBadRequest)
+}
+
+func (eh *EventHandler) updateEvent(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "Post" {
+		result, err := eh.ec.UpdateEvent(r.Body)
+		if err != nil {
+			http.Error(w, `{"error": "Failed to decode request data"}`, http.StatusBadRequest)
+			return
+		}
+
+		response := map[string]string{"result": result}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+	http.Error(w, `{"error": "Wrong method"}`, http.StatusBadRequest)
+}
+
+func (eh *EventHandler) deleteEvent(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "Post" {
+		result, err := eh.ec.DeleteEvent(r.Body)
+		if err != nil {
+			http.Error(w, `{"error": "Failed to decode request data"}`, http.StatusBadRequest)
+			return
+		}
+
+		response := map[string]string{"result": result}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+	http.Error(w, `{"error": "Wrong method"}`, http.StatusBadRequest)
+}
+
+func (eh *EventHandler) getEventsForDay(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		var (
+			uid  uint
+			date time.Time
+		)
+		val1, err1 := strconv.Atoi(r.URL.Query().Get("user_id"))
+		dateStr := r.URL.Query().Get("date")
+		date, err2 := time.Parse("2006-01-02", dateStr)
+		if err1 != nil || err2 != nil {
+			http.Error(w, `{"error": "Failed to decode request data"}`, http.StatusBadRequest)
+			return
+		}
+
+		uid = uint(val1)
+		eh.ec.GetDayEvents(uid, date)
+
 	}
 }
-func updateEvent(w http.ResponseWriter, r *http.Request)       {}
-func deleteEvent(w http.ResponseWriter, r *http.Request)       {}
-func getEventsForDay(w http.ResponseWriter, r *http.Request)   {}
-func getEventsForWeek(w http.ResponseWriter, r *http.Request)  {}
-func getEventsForMonth(w http.ResponseWriter, r *http.Request) {}
+func (eh *EventHandler) getEventsForWeek(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		var (
+			uid  uint
+			date time.Time
+		)
+		val1, err1 := strconv.Atoi(r.URL.Query().Get("user_id"))
+		dateStr := r.URL.Query().Get("date")
+		date, err2 := time.Parse("2006-01-02", dateStr)
+		if err1 != nil || err2 != nil {
+			http.Error(w, `{"error": "Failed to decode request data"}`, http.StatusBadRequest)
+			return
+		}
+
+		uid = uint(val1)
+		// eh.ec.GetDayEvents(uid, date) сделать цикл?
+
+	}
+}
+func (eh *EventHandler) getEventsForMonth(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		var (
+			uid  uint
+			date time.Time
+		)
+		val1, err1 := strconv.Atoi(r.URL.Query().Get("user_id"))
+		dateStr := r.URL.Query().Get("date")
+		date, err2 := time.Parse("2006-01-02", dateStr)
+		if err1 != nil || err2 != nil {
+			http.Error(w, `{"error": "Failed to decode request data"}`, http.StatusBadRequest)
+			return
+		}
+
+		uid = uint(val1)
+		// eh.ec.GetDayEvents(uid, date) сделать цикл?
+
+	}
+}
