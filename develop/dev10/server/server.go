@@ -24,8 +24,7 @@ import (
 )
 
 func main() {
-	// Listen on TCP port 2000 on all available unicast and
-	// anycast IP addresses of the local system.
+	//слушаем порт 8080
 	l, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		log.Fatal(err)
@@ -35,18 +34,15 @@ func main() {
 	fmt.Println("Server started. Listening on port 8080...")
 
 	for {
-		// Wait for a connection.
+		// ожидаем подключение.
 		conn, err := l.Accept()
 		if err != nil {
 			log.Fatal(err)
 		}
-		// Handle the connection in a new goroutine.
-		// The loop then returns to accepting, so that
-		// multiple connections may be served concurrently.
+		// создаемм горутину
 		go func(c net.Conn) {
-			// Echo all incoming data.
+			// дублируем данные.
 			io.Copy(c, c)
-			// Shut down the connection.
 			c.Close()
 			// fmt.Println("Connection closed")
 		}(conn)

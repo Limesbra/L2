@@ -27,6 +27,9 @@ import (
 
 */
 
+// Функция обертка для командной строки
+// слушаем стандартный поток ввода в бесконечном цикле
+// при поступлении данных вызываем обработчик  queueCommand
 func unixUtil() {
 	fmt.Print("Shell:")
 	scanner := bufio.NewScanner(os.Stdin)
@@ -41,6 +44,7 @@ func unixUtil() {
 	}
 }
 
+// выполнение каждой команды
 func execUtil(c string) (string, error) {
 	util := strings.Split(c, " ")
 	cmd := exec.Command(util[0], util[1:]...)
@@ -52,7 +56,7 @@ func execUtil(c string) (string, error) {
 		}
 	} else {
 		var out strings.Builder
-		cmd.Stdout = &out
+		cmd.Stdout = &out // возвращаем результат в стандартный поток вывода
 		err := cmd.Run()
 		if err != nil {
 			return "", fmt.Errorf("error executing command %s: %w", util[0], err)
@@ -63,6 +67,7 @@ func execUtil(c string) (string, error) {
 	return "", nil
 }
 
+// разбивает команды если это пайплайн и вызывает выполнение каждой команды в отдельности
 func queueCommand(c string) {
 
 	cmd := strings.Split(c, "|")

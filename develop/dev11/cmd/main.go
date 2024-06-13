@@ -1,6 +1,7 @@
 package main
 
 import (
+	"dev11/internal/event"
 	"dev11/internal/handlers"
 	"log"
 	"net/http"
@@ -43,10 +44,12 @@ GET /events_for_month
 Web-сервер должен запускаться на порту указанном в конфиге и выводить в лог каждый обработанный запрос.
 */
 
+// функция запускающая работу сервера
 func runServer() {
-	
+	eventsCalendar := event.CreateCalendar()
+	eventHandler := &handlers.EventHandler{Ec: &eventsCalendar}
 	log.Println("starting server on port 8080...")
-	handlers.HandleHTTPRequests()
+	eventHandler.HandleHTTPRequests()
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Println("server didn't start")

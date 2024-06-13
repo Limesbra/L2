@@ -19,11 +19,13 @@ import (
 -s - "separated" - только строки с разделителем
 */
 
+// структура флагов
 type cFlags struct {
 	d, f string
 	s    bool
 }
 
+// функция парсинга флагов из командной строки
 func parseFlags(c *cFlags) {
 	flag.StringVar(&c.f, "f", "", "выбрать поля (колонки)")
 	flag.StringVar(&c.d, "d", "", "только строки с разделителем")
@@ -31,6 +33,7 @@ func parseFlags(c *cFlags) {
 	flag.Parse()
 }
 
+// функция разбивает строку на столбцы
 func worker(c *cFlags) error {
 	column := make([]int, 0)
 

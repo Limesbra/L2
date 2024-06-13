@@ -23,6 +23,8 @@ import (
 -F - "fixed", точное совпадение со строкой, не паттерн +
 -n - "line num", напечатать номер строки +
 */
+
+// структура флагов и мета информации
 type Gflags struct {
 	Count, Ignore, Invert, Fixed, Num, Border    bool
 	After, Before, Context, BotBorder, TopBorder int
@@ -30,6 +32,7 @@ type Gflags struct {
 	R                                            *regexp.Regexp
 }
 
+// Метод структуры для установки границ поиска строк
 func (g *Gflags) setBorders() {
 	if g.After == 0 && g.Before == 0 && g.Context == 0 {
 		return
@@ -48,6 +51,7 @@ func (g *Gflags) setBorders() {
 	}
 }
 
+// Функця парсинга флагов
 func parseFlags(g *Gflags) {
 
 	flag.BoolVar(&g.Count, "c", false, "количество строк")
@@ -98,6 +102,7 @@ func openFile(g *Gflags) (map[int]string, error) {
 	return data, nil
 }
 
+// Функция поиска совпадений с учетом выставленных границ
 func borders(s *map[int]string, g *Gflags) map[int]string {
 	out := make(map[int]string, 0)
 	for i, str := range *s {
@@ -121,6 +126,7 @@ func borders(s *map[int]string, g *Gflags) map[int]string {
 	return out
 }
 
+// Функция сравнивает полностью всю строку по байтам
 func compareBytes(s *map[int]string, g *Gflags) map[int]string {
 	out := make(map[int]string, 0)
 	sb := []byte(g.Fstr)
@@ -134,6 +140,7 @@ func compareBytes(s *map[int]string, g *Gflags) map[int]string {
 	return out
 }
 
+// Инверсия поиска
 func findInverse(s *map[int]string, g *Gflags) map[int]string {
 	out := make(map[int]string, 0)
 	if !g.Fixed {
@@ -149,13 +156,22 @@ func findInverse(s *map[int]string, g *Gflags) map[int]string {
 	return out
 }
 
+// нумерация строк
 func addNumberRow(s *map[int]string) {
 	for i := 0; i < len(*s); i++ {
 		(*s)[i] = strconv.Itoa(i+1) + ":" + (*s)[i]
 	}
 }
 
+// вывод в стандартный поток вывода
 func printResult(s *map[int]string) {
+	// проверка на флаг -с
+	_, ok := (*s)[-1]
+	if ok {
+		fmt.Println(len(*s) - 1)
+		return
+	}
+	//вывод результата
 	for i, j := 0, 0; j < len(*s); i++ {
 		if (*s)[i] != "" {
 			j++
@@ -164,7 +180,19 @@ func printResult(s *map[int]string) {
 	}
 }
 
-func Grep() {
+// простой греп
+func simpleGrep(s *map[int]string, g *Gflags) map[int]string {
+	out := make(map[int]string, 0)
+	for i, str := range *s {
+		if g.R.MatchString(str) {
+			out[i] = str
+		}
+	}
+	return out
+}
+
+// Греп, обертка для всех остальных функций
+func Grep() *map[int]string {
 	var g Gflags
 	parseFlags(&g)
 	file, _ := openFile(&g)
@@ -183,16 +211,17 @@ func Grep() {
 	} else if g.Fixed { // если тольк есть флаг -F
 		output = compareBytes(&file, &g)
 	} else { // если обычный греп
-		output = file
+		output = simpleGrep(&file, &g)
 	}
 	// если есть флаг -c
 	if g.Count {
-		fmt.Println(len(output))
-		return
+		output[-1] = "2"
+		return &output
 	}
-	printResult(&output)
+	// printResult(&output)
+	return &output
 }
 
 func main() {
-	Grep()
+	printResult(Grep())
 }

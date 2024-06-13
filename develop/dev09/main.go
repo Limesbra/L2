@@ -19,6 +19,7 @@ func wget(addres string) error {
 
 	fmt.Println("downloading ...")
 
+	// отправляем запрос по ссылке
 	response, err := http.Get(addres)
 	if err != nil {
 		return errors.New("an error occurred while sending the request")
@@ -26,12 +27,14 @@ func wget(addres string) error {
 
 	defer response.Body.Close()
 
+	// создаем файл куда будем записывать информацию
 	file, err := os.Create("index.html")
 	if err != nil {
 		return errors.New("failed to create file")
 	}
 	defer file.Close()
 
+	// копируем информацию из запроса в файл
 	_, err = io.Copy(file, response.Body)
 	if err != nil {
 		return errors.New("error when copying to file")
